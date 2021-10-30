@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Document</title>
+		<script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+		<script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+		<script src='https://unpkg.com/babel-standalone@6.26.0/babel.js'></script>
+		<link rel="stylesheet" href="style.css">
+	</head>
+
+	<body>
+		<div id="root"></div>
+
+		<script type="text/babel">
+			const {useEffect, useState, useRef} = React
+
+			window.buttonsMatrix = { b1: false, b2: false, b3: false, b4: false, b5: false, b6: false, b7: false, b8: false, b9: false }
+
+			const defaultJsonData = {playerTurn: 'X', buttonsMatrix: window.buttonsMatrix, winner: false, step: 0}
+
+			//helper functions
+			const allBoxesFilled = (buttonsMatrix) => {
+					let bool = 'No one wins'
+
+					Object.keys(buttonsMatrix).forEach(key => {
+						if(!buttonsMatrix[key]) bool = false
+					})
+
+					return bool
+				}
+
+			const checkIfWinner = (turn, matrix) => {
+				let bool = false
+
+				const winConditionHorizontal =
+					(matrix.b1 === turn && matrix.b2 === turn && matrix.b3 === turn) ||
+					(matrix.b4 === turn && matrix.b5 === turn && matrix.b6 === turn) ||
+					(matrix.b7 === turn && matrix.b8 === turn && matrix.b9 === turn)
+
+				const winConditionVertical =
+					(matrix.b1 === turn && matrix.b4 === turn && matrix.b7 === turn) ||
+					(matrix.b2 === turn && matrix.b5 === turn && matrix.b8 === turn) ||
+					(matrix.b3 === turn && matrix.b6 === turn && matrix.b9 === turn)
+
+				const winConditionDiagonal =
+					(matrix.b1 === turn && matrix.b5 === turn && matrix.b9 === turn) ||
+					(matrix.b3 === turn && matrix.b5 === turn && matrix.b7 === turn)
+
+				bool = (winConditionHorizontal || winConditionDiagonal || winConditionVertical) ? `Winner is ${turn}` : allBoxesFilled(matrix)
+
+				return  bool
+			}
+
+			function useLocalStorage(key, initialValue){
+				const [storedValue, setStoredValue] = useState(() => {
+					try {
+						const item = window.localStorage.getItem(key)
+
+						return item ? JSON.parse(item) : initialValue
+					} catch (error) {
+						console.log(error)
+						return initialValue
+					}
+				})
+
+				const setValue = (value) => {
+					try {
+						const valueToStore = value instanceof Function ? value(storedValue) : value
+
+						setStoredValue(valueToStore);
+
+						window.localStorage.setItem(key, JSON.stringify(valueToStore))
+					} catch (error) {
+						console.log(error)
+					}
+				}
+
+				return [storedValue, setValue]
+			}
+
+				// components
+				function App(){
+					const gameData = {...defaultJsonData, history: [{...defaultJsonData}]}
+					const [localStorage, setLocalStorage] = useLocalStorage('savedGameProggress', gameData)
+					const [playerTurn, setPlayerTurn] = useState(localStorage.playerTurn)
+					const [buttonsMatrix, setButtonsMatrix] = useState(localStorage.buttonsMatrix)
+					const [winner, setWinner] = useState(localStorage.winner)
+					const [step, setStep] = useState(localStorage.step)
+					const actions = {setLocalStorage, setPlayerTurn, setButtonsMatrix, setWinner, setStep}
+
+					const renderBackInHistoryButtons = () => {
+						return localStorage.history.map(( backButton, index ) => {
+							return <BackHistoryButton key={index} step={step} data={JSON.stringify(backButton)} localStorage={localStorage} text={index} actions={actions} />
+						})
+					}
+
+
+					return <div className="container">
+									<InfoBar turn={playerTurn} winner={winner} />
+									<GameGrid step={step} setStep={setStep} localStorage={localStorage} playerTurn={playerTurn} setLocalStorage={setLocalStorage} winner={winner} setButtonsMatrix={setButtonsMatrix} buttonsMatrix={buttonsMatrix} setWinner={setWinner} setPlayerTurn={setPlayerTurn} />
+									<div className="back-history__buttons" style={{marginTop: 40}}>
+									{renderBackInHistoryButtons()}
+									</div>
+									<ResetGame actions={actions} />
+								</div>
+				}
+
+				function InfoBar(props){
+					const {turn, winner} = props
+
+					return <div className="info-bar">
+									<h1>{ winner ? winner : `It's player ${turn} turn`}</h1>
+								</div>
+				}
+
+				function GameGrid(props){
+					const {playerTurn, winner, buttonsMatrix, setButtonsMatrix, setPlayerTurn, setWinner, setLocalStorage, localStorage, setStep, step} = props
+					const totalBoxes = 9
+
+					const renderBoxes = () => {
+						const boxesArr = []
+
+						for (let index = 0; index < totalBoxes; index++) {
+							boxesArr.push(index)
+						}
+
+						return boxesArr.map((box, index) => {
+							const boxPosition = `b${index + 1}`
+
+							return <Box setStep={setStep} step={step} localStorage={localStorage} winner={winner}  setLocalStorage={setLocalStorage} boxPosition={boxPosition} setWinner={setWinner} setPlayerTurn={setPlayerTurn} setButtonsMatrix={setButtonsMatrix} buttonsMatrix={buttonsMatrix}  turn={playerTurn}  key={index} />
+						})
+					}
+
+					return <div className={`game-grid${winner ? ' disabled' : ''}`}>
+									<div className="game-grid__items">
+										{renderBoxes()}
+									</div>
+								</div>
+				}
+
+				function Box(props){
+					const {action, turn, boxPosition, setButtonsMatrix, buttonsMatrix, setPlayerTurn, setWinner, setLocalStorage, winner, localStorage, step, setStep} = props
+					const [boxClicked, setBoxClicked] = useState(false)
+
+					const handleBoxClick = () => {
+						const buttonsMatrixCopy = {...buttonsMatrix}
+
+						buttonsMatrixCopy[boxPosition] = turn
+
+						setStep((prevStep) => {
+							return ++prevStep
+						})
+
+						const tempData = {playerTurn: turn === 'X' ? 'O' : 'X', buttonsMatrix: buttonsMatrixCopy, winner: checkIfWinner(turn, buttonsMatrixCopy), step}
+						const gameData = {...tempData, history: [...localStorage.history, tempData]}
+
+						setLocalStorage(gameData)
+						setButtonsMatrix(buttonsMatrixCopy)
+						setWinner(checkIfWinner(turn, buttonsMatrixCopy))
+						turn === 'X' ? setPlayerTurn('O') : setPlayerTurn('X')
+					}
+
+
+					return <div className="box" >
+									<button className="box__button" onClick={!buttonsMatrix[boxPosition] ? handleBoxClick : undefined}>
+										<span>{buttonsMatrix[boxPosition] ? buttonsMatrix[boxPosition] : ''}</span>
+									</button>
+								</div>
+				}
+
+				function BackHistoryButton(props){
+					const {step, data, localStorage, text, actions} = props
+					const parsedData = JSON.parse(data)
+					const { playerTurn, buttonsMatrix, winner} = parsedData
+					const { setPlayerTurn, setButtonsMatrix, setWinner, setLocalStorage, setStep } = actions
+
+
+					const handleRewind = () => {
+						setPlayerTurn(playerTurn)
+						setButtonsMatrix(buttonsMatrix)
+						setWinner(winner)
+						setStep(parseInt(text, 10))
+						setLocalStorage({playerTurn, buttonsMatrix, winner, step: parseInt(text, 10), history: [...localStorage.history]})
+					}
+
+
+					return <button style={{margin: '0 5px'}} disabled={parseInt(text, 10) === step} onClick={handleRewind}>{text}</button>
+				}
+
+				function ResetGame(props) {
+					const { actions } = props
+					const { setStep, setLocalStorage, setPlayerTurn, setWinner, setButtonsMatrix } = actions
+
+					const resetGame = () => {
+						setPlayerTurn('X')
+						setButtonsMatrix(window.buttonsMatrix)
+						setWinner(false)
+						setStep(0)
+						const gameData = {...defaultJsonData, history: [{...defaultJsonData}]}
+						setLocalStorage(gameData)
+					}
+
+					return <div className="reset-actions" style={{marginTop: 40}}>
+									<button className="btn" onClick={resetGame}>Reset</button>
+								</div>
+				}
+
+				ReactDOM.render(<App />, document.querySelector('#root'))
+		</script>
+	</body>
+</html>
+
