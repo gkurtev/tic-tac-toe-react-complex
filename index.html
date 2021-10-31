@@ -142,21 +142,24 @@
 				}
 
 				function Box(props){
-					const {action, turn, boxPosition, setButtonsMatrix, buttonsMatrix, setPlayerTurn, setWinner, setLocalStorage, winner, localStorage, step, setStep} = props
+					const { action, turn, step, winner, boxPosition, buttonsMatrix, setButtonsMatrix, setPlayerTurn, setWinner, setLocalStorage, localStorage, setStep } = props
 					const [boxClicked, setBoxClicked] = useState(false)
 
 					const handleBoxClick = () => {
+						const stepIncreased = step + 1
+						const localStorageHistory = [...localStorage.history]
 						const buttonsMatrixCopy = {...buttonsMatrix}
 
 						buttonsMatrixCopy[boxPosition] = turn
 
-						setStep((prevStep) => {
-							return ++prevStep
-						})
+						if(localStorageHistory.length > stepIncreased){
+							localStorageHistory.splice(stepIncreased)
+						}
 
-						const tempData = {playerTurn: turn === 'X' ? 'O' : 'X', buttonsMatrix: buttonsMatrixCopy, winner: checkIfWinner(turn, buttonsMatrixCopy), step}
-						const gameData = {...tempData, history: [...localStorage.history, tempData]}
+						const tempData = {playerTurn: turn === 'X' ? 'O' : 'X', buttonsMatrix: buttonsMatrixCopy, winner: checkIfWinner(turn, buttonsMatrixCopy), step: stepIncreased}
+						const gameData = {...tempData, history: [...localStorageHistory, tempData]}
 
+						setStep(stepIncreased)
 						setLocalStorage(gameData)
 						setButtonsMatrix(buttonsMatrixCopy)
 						setWinner(checkIfWinner(turn, buttonsMatrixCopy))
