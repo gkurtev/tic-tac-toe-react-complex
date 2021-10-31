@@ -118,16 +118,9 @@
 
 				function GameGrid(props){
 					const {playerTurn, winner, buttonsMatrix, setButtonsMatrix, setPlayerTurn, setWinner, setLocalStorage, localStorage, setStep, step} = props
-					const totalBoxes = 9
 
 					const renderBoxes = () => {
-						const boxesArr = []
-
-						for (let index = 0; index < totalBoxes; index++) {
-							boxesArr.push(index)
-						}
-
-						return boxesArr.map((box, index) => {
+						return Array(9).fill(null).map((box, index) => {
 							const boxPosition = `b${index + 1}`
 
 							return <Box setStep={setStep} step={step} localStorage={localStorage} winner={winner}  setLocalStorage={setLocalStorage} boxPosition={boxPosition} setWinner={setWinner} setPlayerTurn={setPlayerTurn} setButtonsMatrix={setButtonsMatrix} buttonsMatrix={buttonsMatrix}  turn={playerTurn}  key={index} />
