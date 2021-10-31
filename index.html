@@ -140,14 +140,10 @@
 
 					const handleBoxClick = () => {
 						const stepIncreased = step + 1
-						const localStorageHistory = [...localStorage.history]
+						const localStorageHistory = [...localStorage.history.slice(0, stepIncreased)]
 						const buttonsMatrixCopy = {...buttonsMatrix}
 
 						buttonsMatrixCopy[boxPosition] = turn
-
-						if(localStorageHistory.length > stepIncreased){
-							localStorageHistory.splice(stepIncreased)
-						}
 
 						const tempData = {playerTurn: turn === 'X' ? 'O' : 'X', buttonsMatrix: buttonsMatrixCopy, winner: checkIfWinner(turn, buttonsMatrixCopy), step: stepIncreased}
 						const gameData = {...tempData, history: [...localStorageHistory, tempData]}
